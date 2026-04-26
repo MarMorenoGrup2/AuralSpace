@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Applicació Web d'Auralització</title>
+    <meta charset="utf-8">
+    <meta name="description" content="&lt;model-viewer&gt; template">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link type="text/css" href="./styles.css" rel="stylesheet"/>
+    <link rel="icon" href="ICONO_.jpg">
+  </head>
+  <body>
+    <!-- <model-viewer> HTML element -->
+    <model-viewer src="Sala3D.glb" ar ar-modes="webxr scene-viewer quick-look" id="viewer" src="gridblend_.glb" camera-controls tone-mapping="aces" poster="poster.webp" shadow-intensity="2" exposure="0.52" shadow-softness="1" >
+          <input type="file" id="audioUpload" accept="Audio/*">
+          <button id="playButton">Play audio</button>
+          <div class="grid-overlay"></div>
+          
+    </model-viewer>  
+    <script src="script.js"></script>
+    <!-- Loads <model-viewer> for browsers: -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  </body>
+</html>
