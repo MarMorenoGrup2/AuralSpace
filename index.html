@@ -1,23 +1,49 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <title>Applicació Web d'Auralització</title>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Aplicació web d'auralització</title>
+    <link rel="icon" href="Images/ICONO_.jpg">
     <meta charset="utf-8">
-    <meta name="description" content="&lt;model-viewer&gt; template">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link type="text/css" href="./styles.css" rel="stylesheet"/>
-    <link rel="icon" href="ICONO_.jpg">
-  </head>
-  <body>
-    <!-- <model-viewer> HTML element -->
-    <model-viewer src="Sala3D.glb" ar ar-modes="webxr scene-viewer quick-look" id="viewer" src="gridblend_.glb" camera-controls tone-mapping="aces" poster="poster.webp" shadow-intensity="2" exposure="0.52" shadow-softness="1" >
-          <input type="file" id="audioUpload" accept="Audio/*">
-          <button id="playButton">Play audio</button>
-          <div class="grid-overlay"></div>
-          
-    </model-viewer>  
-    <script src="script.js"></script>
-    <!-- Loads <model-viewer> for browsers: -->
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  </body>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div id="loading-overlay">
+        <h2>PREPARING ACUSTICS...</h2>
+        <div id="load-progress">0%</div>
+    </div>
+
+    <div id="ui-container">
+        <h1>AuralSpace</h1>
+
+        <label class="upload-area">
+            UPLOAD AUDIO
+            <input type="file" id="audioInput" accept="audio/*">
+        </label>
+
+        <button id="playButton" class="btn">PLAY AUDIO</button>
+
+        <div style="margin-top: 15px;">
+            <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; text-align: center;">
+                REAL <-> CONVOLVED
+            </label>
+            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="0.5" style="width: 100%; accent-color: #ff4444;">
+        </div>
+
+        <div id="audioList"></div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module" src="script.js"></script>
+</body>
 </html>

@@ -13,188 +13,157 @@ body {
   height: 100%;
 }
 
-model-viewer {
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #0c0c0c;
+  color: white;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#ui-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background: rgba(15, 15, 15, 0.95);
+  padding: 25px;
+  z-index: 100;
+  border-right: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+h1 {
+  text-align: center;
+  margin: 0;
+  font-size: 35px;
+  letter-spacing: 1px;
+}
+
+#loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background-color: #9df3f4;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: opacity 0.5s;
+}
+
+#load-progress {
+  font-family: monospace;
+  font-size: 2em;
+  color: #ff4444;
 }
 
 
-/* .progress-bar {
-  display: block;
-  width: 33%;
-  height: 10%;
-  max-height: 2%;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate3d(-50%, -50%, 0);
-  border-radius: 25px;
-  box-shadow: 0px 3px 10px 3px rgba(0, 0, 0, 0.5), 0px 0px 5px 1px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.progress-bar.hide {
-  visibility: hidden;
-  transition: visibility 0.3s;
-}
-
-.update-bar {
-  background-color: rgba(255, 255, 255, 0.9);
-  width: 0%;
-  height: 100%;
-  border-radius: 25px;
-  float: left;
-  transition: width 0.3s;
-} */
-
-/* #ar-button {
-  background-image: url(ar_icon.png);
-  background-repeat: no-repeat;
-  background-size: 20px 20px;
-  background-position: 12px 50%;
-  background-color: #fff;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  bottom: 16px;
-  padding: 0px 16px 0px 40px;
-  font-family: Roboto Regular, Helvetica Neue, sans-serif;
-  font-size: 14px;
-  color:#4285f4;
-  height: 36px;
-  line-height: 36px;
-  border-radius: 18px;
-  border: 1px solid #2e4779;
-} */
-
-/* #ar-button:active {
-  background-color: #E8EAED;
-}
-
-#ar-button:focus {
-  outline: none;
-}
-
-#ar-button:focus-visible {
-  outline: 1px solid #4285f4;
-} */
-
-@keyframes circle {
-  from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
-  to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
-}
-
-@keyframes elongate {
-  from { transform: translateX(100px); }
-  to   { transform: translateX(-100px); }
-}
-
-/*model-viewer > #ar-prompt {
-  position: absolute;
-  left: 50%;
-  bottom: 60px;
-  animation: elongate 2s infinite ease-in-out alternate;
-  display: none;
-}
-
-model-viewer[ar-status="session-started"] > #ar-prompt {
-  display: block;
-}
-
-model-viewer > #ar-prompt > img {
-  animation: circle 4s linear infinite;
-}*/
-
-
-.grid-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 10;
-
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0) 2px, transparent 2px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0) 2px, transparent 2px);
-
-  background-size: 100px 100px;
-}
-
-.Hotspot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid #000;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.Hotspot:hover {
-  background: #00ffff;
-  border-color: #00ffff;
-  transform: scale(1.4);
-  box-shadow: 0 0 12px #00ffff;
-}
-
-#playButton {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 100;
-
-  padding: 10px 15px;
-  background: rgb(180, 42, 42);
+.btn {
+  background: #ff4444;
   color: white;
   border: none;
+  padding: 12px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease; 
 }
 
 
-/* BOTÓN PERSONALIZADO */
-.upload-label {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  
-  background: #1e1e1e;
-  color: white;
-  
-  padding: 12px 20px;
-  border-radius: 12px;
-  
-  font-family: sans-serif;
-  font-size: 14px;
-  
+.btn:hover {
+  background: #ff6666;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn.playing {
+  background: #00e5ff;
+  color: #000;
+}
+
+
+.btn.playing:hover {
+  background: #70f3ff;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+}
+
+
+.upload-area {
+  border: 2px dashed #444;
+  padding: 15px;
+  text-align: center;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 13px;
+  color: #aaa;
   transition: all 0.3s ease;
-  
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-/* HOVER */
-.upload-label:hover {
-  background: #333;
-  transform: translateX(-50%) scale(1.05);
+
+.upload-area:hover {
+  border-color: #ff4444;
+  color: #fff;
+  background: rgba(255, 68, 68, 0.05);
+  box-shadow: inset 0 0 10px rgba(255, 68, 68, 0.1);
 }
 
-/* ACTIVO */
-.upload-label:active {
-  transform: translateX(-50%) scale(0.95);
+#audioList {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* TEXTO DEL ARCHIVO */
-#fileName {
-  position: fixed;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  
-  color: white;
+.audio-item {
+  background: #222;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+  border: 1px solid transparent;
+}
+
+
+.audio-item:hover {
+  background: #2c2c2c;
+}
+
+.audio-name {
+  padding: 12px;
+  flex: 1;
   font-size: 12px;
-  font-family: sans-serif;
-  opacity: 0.8;
+  text-align: center;
+}
+
+.active {
+  border: 1px solid #ff4444;
+  background: #2a1010;
+}
+
+
+.delete-btn {
+  background: none;
+  color: #555;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.delete-btn:hover {
+  color: #ff4444;
+}
+
+input[type="file"] {
+  display: none;
 }
