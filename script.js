@@ -1,221 +1,289 @@
-// HOTSPOTS
-window.addEventListener("DOMContentLoaded", () => {
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    const viewer = document.querySelector("#viewer");
-  
-    let index = 1;
-  
+let camera, scene, renderer, controls, player, floorPlane, raycaster, pointer;
+let isDragging = false;
+
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let sourceNode = null;
+let userAudioBuffer = null;
+let isPlaying = false;
+let selectedAudioId = null;
+let audioLibrary = [];
+
+let masterGain = null;
+// let dryGainNode = null; 
+let activeWetChain = null; 
+const irBuffers = {}; 
+const FADE_TIME = 0.2; 
+
+//mesh 
+const GRID_SIZE = 0.6; 
+const OFFSET_X = -0.16;
+const OFFSET_Z = 2.05;
+let currentGridPos = { x: 2, z: 3 };
+
+init();
+animate();
+
+async function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(6, 6, 10);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // player
+    player = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0xff0000, emissiveIntensity: 0.5 })
+    );
+    updatePlayerPosition();
+    scene.add(player);
+
+    // mesh draw
+    const dotGeo = new THREE.SphereGeometry(0.015, 8, 8);
+    const dotMat = new THREE.MeshBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.4 });
     for (let x = 0; x < 6; x++) {
-      for (let z = 0; z < 7; z++) {
-  
-        const btn = document.createElement("button");
-  
-        btn.className = "Hotspot";
-        btn.slot = `hotspot-${index}`;
-  
-        const posX = -0.16 + x * 0.6;
-        const posZ = 2.05 - z * 0.65;
-  
-        btn.setAttribute("data-position", `${posX}m 1.225m ${posZ}m`);
-  
-        const label = `${x + 1}F-${z + 1}A`;
-        btn.innerHTML = `<div class="HotspotAnnotation">${label}</div>`;
-  
-        viewer.appendChild(btn);
-  
-        index++;
-      }
+        for (let z = 0; z < 7; z++) {
+            const dot = new THREE.Mesh(dotGeo, dotMat);
+            dot.position.set(OFFSET_X + x * GRID_SIZE, 1.225, OFFSET_Z - z * 0.65);
+            scene.add(dot);
+        }
     }
-  
-    // IR change - click 
-    viewer.addEventListener("click", (event) => {
-  
-      const hotspot = event.target.closest(".Hotspot");
-      if (!hotspot) return;
-  
-      const label = hotspot.innerText.trim();
-  
-      changeIR(label);
+
+    // room 
+    new GLTFLoader().load('./Sala3D.glb', (gltf) => {
+        scene.add(gltf.scene);
+        const floorGeo = new THREE.PlaneGeometry(20, 20);
+        floorGeo.rotateX(-Math.PI / 2);
+        floorPlane = new THREE.Mesh(floorGeo, new THREE.MeshBasicMaterial({ visible: false }));
+        scene.add(floorPlane);
     });
-  
-  });
 
-  let userAudioBuffer = null;
+    raycaster = new THREE.Raycaster();
+    pointer = new THREE.Vector2();
 
-const fileInput = document.querySelector("#audioUpload");
+    await preloadAllIRs();
 
-fileInput.addEventListener("change", async (event) => {
+    
+    window.addEventListener('pointerdown', onDown);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('resize', onResize);
+    document.getElementById('audioInput').addEventListener('change', handleFileUpload);
+    document.getElementById('playButton').addEventListener('click', toggleAudio);
 
-  const file = event.target.files[0];
-  if (!file) return;
+    document.getElementById('mixSlider').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (activeWetChain) activeWetChain.gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.05);
+    });
+}
 
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    userAudioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-    console.log("Audio cargado:", file.name);
-
-  } catch (err) {
-    alert("Error al cargar el audio");
-  }
-});
-  
-  
-  // AUDIO ENGINE
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  
-  let source = null;
-  let convolver = null;
-  let gainDirect = null;
-  let gainReverb = null;
-  let panner = null;
-  let filter = null;
-  
-  let isPlaying = false;
-  
-  // LOADERS
-  async function loadSound(url) {
-    const res = await fetch(url);
-    const buffer = await res.arrayBuffer();
-    return await audioCtx.decodeAudioData(buffer);
-  }
-  
-  async function loadIR(url) {
-    const res = await fetch(url);
-    const buffer = await res.arrayBuffer();
-    return await audioCtx.decodeAudioData(buffer);
-  }
-  
-  
-  // PLAY
-  async function playAudio() {
-
-    if (!userAudioBuffer) {
-      alert("Por favor, sube un audio primero");
-      return;
+async function preloadAllIRs() {
+    const total = 42; let loaded = 0;
+    const progressEl = document.getElementById('load-progress');
+    const promises = [];
+    for (let f = 1; f <= 6; f++) {
+        for (let a = 1; a <= 7; a++) {
+            const label = `${f}F-${a}A`;
+            const p = fetch(`IRs/${label}.wav`).then(r => r.arrayBuffer())
+                .then(ab => audioCtx.decodeAudioData(ab))
+                .then(buf => {
+                    irBuffers[label] = buf;
+                    loaded++;
+                    progressEl.innerText = `${Math.round((loaded/total)*100)}%`;
+                }).catch(() => loaded++);
+            promises.push(p);
+        }
     }
-  
-    const irBuffer = await loadIR("IRs/1F-1A.wav");
-  
-    source = audioCtx.createBufferSource();
-    source.buffer = userAudioBuffer;
-    source.loop = true;
-  
-    convolver = audioCtx.createConvolver();
-    convolver.buffer = irBuffer;
-  
-    gainDirect = audioCtx.createGain();
-    gainReverb = audioCtx.createGain();
-    panner = audioCtx.createStereoPanner();
-    filter = audioCtx.createBiquadFilter();
-  
-    filter.type = "lowpass";
-  
-    // valores iniciales
-    gainDirect.gain.value = 0.7;
-    gainReverb.gain.value = 0.3;
-    panner.pan.value = 0;
-    filter.frequency.value = 20000;
-  
-    // conexiones
-    source.connect(gainDirect);
-    source.connect(convolver);
-  
-    convolver.connect(gainReverb);
-  
-    gainDirect.connect(panner);
-    gainReverb.connect(panner);
-  
-    panner.connect(filter);
-    filter.connect(audioCtx.destination);
-  
-    source.start();
-  
-    isPlaying = true;
-  
-    console.log("▶️ PLAY con audio del usuario");
-  }
-  
-  
-  // STOP
-  function stopAudio() {
-  
-    if (source) {
-      source.stop();
-      source.disconnect();
-      source = null;
+    await Promise.all(promises);
+    document.getElementById('loading-overlay').style.opacity = '0';
+    setTimeout(() => document.getElementById('loading-overlay').remove(), 800);
+}
+
+function updateConvolver() {
+    if (!isPlaying || !sourceNode) return;
+    const label = `${currentGridPos.x + 1}F-${currentGridPos.z + 1}A`;
+    const nextBuffer = irBuffers[label];
+    if (!nextBuffer) return;
+
+    const now = audioCtx.currentTime;
+    const mixValue = parseFloat(document.getElementById('mixSlider').value);
+
+    const nextWetGain = audioCtx.createGain();
+    const nextConv = audioCtx.createConvolver();
+    nextConv.buffer = nextBuffer;
+    nextWetGain.gain.setValueAtTime(0, now);
+
+    sourceNode.connect(nextConv);
+    nextConv.connect(nextWetGain);
+    nextWetGain.connect(masterGain);
+
+    nextWetGain.gain.linearRampToValueAtTime(mixValue, now + FADE_TIME);
+
+    if (activeWetChain) {
+        const oldG = activeWetChain.gainNode;
+        const oldC = activeWetChain.convNode;
+        oldG.gain.linearRampToValueAtTime(0, now + FADE_TIME);
+        setTimeout(() => { oldC.disconnect(); oldG.disconnect(); }, FADE_TIME * 1000);
     }
-  
-    isPlaying = false;
-  
-    console.log("STOP");
-  }
-  
-  
-  // IR change 
-  async function changeIR(label) {
-  
-    if (!convolver) return;
-  
-    try {
-  
-      const file = `IRs/${label}.wav`;
-      const irBuffer = await loadIR(file);
-  
-      convolver.buffer = irBuffer;
-  
-      
-      // Position
-      const fila = parseInt(label.split("F")[0]);
-      const asiento = parseInt(label.split("-")[1]);
-  
-      // PAN 
-      const pan = ((asiento - 1) / 6) * 2 - 1;
-      panner.pan.value = -pan * 0.3;
-  
-      
-      // Distance 
-      
-      const distancia = fila;
-  
-      gainDirect.gain.value = 1.2 - distancia * 0.15;
-      gainReverb.gain.value = 0.2 + distancia * 0.15;
-  
-      
-      // filter
-      filter.frequency.value = 20000 - distancia * 2500;
-  
-      
-      // ajusts
-      if (fila === 1) {
-        gainDirect.gain.value += 0.2;
-      }
-  
-      if (fila === 6) {
-        gainReverb.gain.value += 0.2;
-      }
-  
-      console.log(`${label} | pan: ${panner.pan.value}`);
-  
-    } catch (err) {
-      console.error("Error cargando IR:", label, err);
-    }
-  }
-  
-  
-  // Button play - stop 
-  const button = document.querySelector("#playButton");
-  
-  button.addEventListener("click", async () => {
-  
-    await audioCtx.resume();
-  
+    activeWetChain = { convNode: nextConv, gainNode: nextWetGain };
+}
+
+async function toggleAudio() {
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
     if (!isPlaying) {
-      await playAudio();
-      button.textContent = "Stop";
+        if (!userAudioBuffer) return alert("Select or add an audio");
+
+        masterGain = audioCtx.createGain();
+        masterGain.connect(audioCtx.destination);
+
+        sourceNode = audioCtx.createBufferSource();
+        sourceNode.buffer = userAudioBuffer;
+        sourceNode.loop = true;
+
+        sourceNode.start();
+        isPlaying = true;
+        updateConvolver();
+
+        document.getElementById('playButton').textContent = "STOP AUDIO";
+        document.getElementById('playButton').classList.add("playing");
     } else {
-      stopAudio();
-      button.textContent = "Play";
+        stopAudio();
     }
-  
-  });
+}
+
+function stopAudio() {
+    if (sourceNode) { 
+        try { sourceNode.stop(); } catch(e) {} 
+        sourceNode.disconnect();
+        sourceNode = null; 
+    }
+    if (activeWetChain) { 
+        activeWetChain.gainNode.disconnect(); 
+        activeWetChain.convNode.disconnect(); 
+        activeWetChain = null; 
+    }
+    if (masterGain) { 
+        masterGain.disconnect(); 
+        masterGain = null; 
+    }
+    isPlaying = false;
+    document.getElementById('playButton').textContent = "PLAY AUDIO";
+    document.getElementById('playButton').classList.remove("playing");
+}
+
+function updatePlayerPosition() {
+    player.position.x = OFFSET_X + currentGridPos.x * GRID_SIZE;
+    player.position.z = OFFSET_Z - currentGridPos.z * 0.65;
+}
+
+
+async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const buffer = await file.arrayBuffer();
+    audioLibrary.push({ id: Date.now(), name: file.name, data: buffer });
+    renderAudioList();
+    e.target.value = ""; 
+}
+
+function renderAudioList() {
+    const container = document.getElementById("audioList");
+    container.innerHTML = "";
+    audioLibrary.forEach(audio => {
+        const div = document.createElement("div");
+        div.className = `audio-item ${selectedAudioId === audio.id ? 'active' : ''}`;
+        div.innerHTML = `<span class="audio-name">${audio.name}</span><button class="delete-btn">✕</button>`;
+        
+        
+        div.querySelector('.audio-name').onclick = () => selectAudio(audio);
+        
+        
+        div.querySelector('.delete-btn').onclick = (e) => { 
+            e.stopPropagation(); 
+            deleteAudio(audio.id); 
+        };
+        container.appendChild(div);
+    });
+}
+
+async function selectAudio(audio) {
+    
+    if (selectedAudioId === audio.id) {
+        stopAudio();
+        selectedAudioId = null;
+        userAudioBuffer = null;
+    } 
+    
+    else {
+        stopAudio(); 
+        selectedAudioId = audio.id;
+        
+        userAudioBuffer = await audioCtx.decodeAudioData(audio.data.slice(0));
+    }
+    renderAudioList();
+}
+
+function deleteAudio(id) {
+    if (selectedAudioId === id) {
+        stopAudio();
+        selectedAudioId = null;
+        userAudioBuffer = null;
+    }
+    audioLibrary = audioLibrary.filter(a => a.id !== id);
+    renderAudioList();
+}
+
+
+function onDown(e) {
+    updatePointer(e);
+    raycaster.setFromCamera(pointer, camera);
+    if (raycaster.intersectObject(player).length > 0) { isDragging = true; controls.enabled = false; }
+}
+
+function onMove(e) {
+    updatePointer(e);
+    if (!isDragging) return;
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObject(floorPlane);
+    if (hits.length > 0) {
+        const pt = hits[0].point;
+        let gx = Math.round((pt.x - OFFSET_X) / GRID_SIZE);
+        let gz = Math.round((OFFSET_Z - pt.z) / 0.65);
+        gx = Math.max(0, Math.min(5, gx)); gz = Math.max(0, Math.min(6, gz));
+        if (gx !== currentGridPos.x || gz !== currentGridPos.z) {
+            currentGridPos = { x: gx, z: gz };
+            updatePlayerPosition();
+            updateConvolver();
+        }
+    }
+}
+
+function onUp() { isDragging = false; controls.enabled = true; }
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+function updatePointer(e) {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}

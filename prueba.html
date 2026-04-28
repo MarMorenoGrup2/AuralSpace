@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Aplicació web d'auralització</title>
+    <link rel="icon" href="Images/ICONO_.jpg">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { margin: 0; overflow: hidden; background: #0c0c0c; color: white; font-family: 'Segoe UI', sans-serif; }
+        #ui-container { 
+            position: absolute; top: 0; left: 0; width: 280px; height: 100vh; 
+            background: rgba(15, 15, 15, 0.95); padding: 25px; z-index: 100;
+            border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;
+        }
+        h1 { text-align: center; margin: 0; font-size: 35px; color: #ffffff; }
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 1000; transition: opacity 0.5s;
+        }
+        .btn { 
+            background: #ff4444; color: white; border: none; padding: 12px; 
+            border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .btn.playing { background: #00e5ff; color: #000; }
+        .upload-area { border: 2px dashed #444; padding: 15px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 13px; color: #aaa; }
+        #audioList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .audio-item { background: #222; border-radius: 6px; cursor: pointer; display: flex; align-items: center; }
+        .audio-name { padding: 12px; flex: 1; font-size: 12px; text-align: center; }
+        .active { border: 1px solid #ff4444; background: #2a1010; }
+        .delete-btn { background: none; color: #555; border: none; padding: 10px; cursor: pointer; }
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay">
+        <h2>PREPARING ACUSTICS...</h2>
+        <div id="load-progress" style="font-family: monospace; font-size: 2em;">0%</div>
+    </div>
+
+    <div id="ui-container">
+        <h1>AuralSpace</h1>
+        <label class="upload-area">UPLOAD AUDIO<input type="file" id="audioInput" accept="audio/*"></label>
+        <button id="playButton" class="btn">PLAY AUDIO</button>
+        <hr style="border: 0; border-top: 1px solid #333;">
+        <div id="audioList"></div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        let camera, scene, renderer, controls, player, floorPlane, raycaster, pointer;
+        let isDragging = false;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let sourceNode = null;
+        let userAudioBuffer = null;
+        let isPlaying = false;
+        let selectedAudioId = null;
+        let audioLibrary = [];
+
+        
+        let mainGain = null; 
+        let activeWetChain = null; 
+        const irBuffers = {}; 
+        const FADE_TIME = 0.2; 
+
+        const GRID_SIZE = 0.6; 
+        const OFFSET_X = -0.16;
+        const OFFSET_Z = 2.05;
+        let currentGridPos = { x: 2, z: 3 };
+
+        init();
+        animate();
+
+        async function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(6, 6, 10);
+            scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+            
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const playerGeo = new THREE.SphereGeometry(0.12, 32, 32);
+            player = new THREE.Mesh(playerGeo, new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x660000 }));
+            player.position.set(OFFSET_X + currentGridPos.x * GRID_SIZE, 1.225, OFFSET_Z - currentGridPos.z * 0.65);
+            scene.add(player);
+
+            new GLTFLoader().load('./Sala3D.glb', (gltf) => {
+                scene.add(gltf.scene);
+                const floorGeo = new THREE.PlaneGeometry(30, 30);
+                floorGeo.rotateX(-Math.PI / 2);
+                floorPlane = new THREE.Mesh(floorGeo, new THREE.MeshBasicMaterial({ visible: false }));
+                scene.add(floorPlane);
+            });
+
+            raycaster = new THREE.Raycaster();
+            pointer = new THREE.Vector2();
+
+            await preloadAllIRs();
+
+            window.addEventListener('pointerdown', onDown);
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+            window.addEventListener('resize', onResize);
+            document.getElementById('audioInput').addEventListener('change', handleFileUpload);
+            document.getElementById('playButton').addEventListener('click', toggleAudio);
+        }
+
+        async function preloadAllIRs() {
+            const total = 42; let loaded = 0;
+            const progressEl = document.getElementById('load-progress');
+            const promises = [];
+            for (let f = 1; f <= 6; f++) {
+                for (let a = 1; a <= 7; a++) {
+                    const label = `${f}F-${a}A`;
+                    const p = fetch(`IRs/${label}.wav`).then(r => r.arrayBuffer())
+                        .then(ab => audioCtx.decodeAudioData(ab))
+                        .then(buf => { irBuffers[label] = buf; loaded++; progressEl.innerText = `${Math.round((loaded/total)*100)}%`; })
+                        .catch(() => loaded++);
+                    promises.push(p);
+                }
+            }
+            await Promise.all(promises);
+            document.getElementById('loading-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading-overlay').remove(), 500);
+        }
+
+        function updateConvolver() {
+            if (!isPlaying || !sourceNode) return;
+            const label = `${currentGridPos.x + 1}F-${currentGridPos.z + 1}A`;
+            const nextBuffer = irBuffers[label];
+            if (!nextBuffer) return;
+
+            const now = audioCtx.currentTime;
+            
+            
+            const newConv = audioCtx.createConvolver();
+            newConv.buffer = nextBuffer;
+            const newGain = audioCtx.createGain();
+            newGain.gain.setValueAtTime(0, now);
+
+            sourceNode.connect(newConv);
+            newConv.connect(newGain);
+            newGain.connect(mainGain); 
+
+           
+            newGain.gain.linearRampToValueAtTime(1, now + FADE_TIME);
+
+            
+            if (activeWetChain) {
+                const oldG = activeWetChain.gain;
+                const oldC = activeWetChain.conv;
+                oldG.gain.linearRampToValueAtTime(0, now + FADE_TIME);
+                setTimeout(() => { oldC.disconnect(); oldG.disconnect(); }, FADE_TIME * 1000);
+            }
+
+            activeWetChain = { conv: newConv, gain: newGain };
+        }
+
+        async function toggleAudio() {
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            if (!isPlaying) {
+                if (!userAudioBuffer) return alert("Sube un audio primero");
+
+                
+                mainGain = audioCtx.createGain();
+                mainGain.connect(audioCtx.destination);
+
+                
+                sourceNode = audioCtx.createBufferSource();
+                sourceNode.buffer = userAudioBuffer;
+                sourceNode.loop = true;
+
+                
+                const dryGain = audioCtx.createGain();
+                dryGain.gain.value = 0.4; 
+                sourceNode.connect(dryGain);
+                dryGain.connect(mainGain);
+
+                sourceNode.start();
+                isPlaying = true;
+
+                
+                updateConvolver();
+
+                document.getElementById('playButton').textContent = "STOP AUDIO";
+                document.getElementById('playButton').classList.add("playing");
+            } else {
+                stopAudio();
+            }
+        }
+
+        function stopAudio() {
+            if (sourceNode) { try{sourceNode.stop();}catch(e){} sourceNode = null; }
+            if (activeWetChain) { activeWetChain.conv.disconnect(); activeWetChain.gain.disconnect(); activeWetChain = null; }
+            if (mainGain) { mainGain.disconnect(); mainGain = null; }
+            isPlaying = false;
+            document.getElementById('playButton').textContent = "PLAY AUDIO";
+            document.getElementById('playButton').classList.remove("playing");
+        }
+
+        
+        async function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const buffer = await file.arrayBuffer();
+            audioLibrary.push({ id: Date.now(), name: file.name, data: buffer });
+            renderAudioList();
+        }
+
+        function renderAudioList() {
+            const listContainer = document.getElementById("audioList");
+            listContainer.innerHTML = "";
+            audioLibrary.forEach(audio => {
+                const item = document.createElement("div");
+                item.className = `audio-item ${selectedAudioId === audio.id ? 'active' : ''}`;
+                item.innerHTML = `<span class="audio-name">${audio.name}</span><button class="delete-btn">✕</button>`;
+                item.querySelector('.audio-name').onclick = () => selectAudio(audio);
+                item.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); deleteAudio(audio.id); };
+                listContainer.appendChild(item);
+            });
+        }
+
+        async function selectAudio(audio) {
+            if (selectedAudioId === audio.id) { stopAudio(); selectedAudioId = null; userAudioBuffer = null; }
+            else {
+                selectedAudioId = audio.id;
+                userAudioBuffer = await audioCtx.decodeAudioData(audio.data.slice(0));
+                if (isPlaying) { stopAudio(); toggleAudio(); }
+            }
+            renderAudioList();
+        }
+
+        function deleteAudio(id) {
+            if (selectedAudioId === id) stopAudio();
+            audioLibrary = audioLibrary.filter(a => a.id !== id);
+            renderAudioList();
+        }
+
+        function onDown(e) { updatePointer(e); raycaster.setFromCamera(pointer, camera); if (raycaster.intersectObject(player).length > 0) { isDragging = true; controls.enabled = false; } }
+        function onMove(e) {
+            updatePointer(e);
+            if (!isDragging) return;
+            raycaster.setFromCamera(pointer, camera);
+            const hits = raycaster.intersectObject(floorPlane);
+            if (hits.length > 0) {
+                const pt = hits[0].point;
+                let gx = Math.round((pt.x - OFFSET_X) / GRID_SIZE);
+                let gz = Math.round((OFFSET_Z - pt.z) / 0.65);
+                gx = Math.max(0, Math.min(5, gx)); gz = Math.max(0, Math.min(6, gz));
+                if (gx !== currentGridPos.x || gz !== currentGridPos.z) {
+                    currentGridPos = { x: gx, z: gz };
+                    player.position.x = OFFSET_X + gx * GRID_SIZE;
+                    player.position.z = OFFSET_Z - gz * 0.65;
+                    updateConvolver();
+                }
+            }
+        }
+        function onUp() { isDragging = false; controls.enabled = true; }
+        function onResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+        function updatePointer(e) { pointer.x = (e.clientX / window.innerWidth) * 2 - 1; pointer.y = -(e.clientY / window.innerHeight) * 2 + 1; }
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+    </script>
+</body>
+</html>
