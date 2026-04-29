@@ -1,3 +1,3 @@
 # AuralSpace
 
-This web is about an auralization space for a room. 
+This web is about AuralSpace, a web app for room auralization
