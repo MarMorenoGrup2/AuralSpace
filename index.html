@@ -25,11 +25,15 @@
 
         <button id="playButton" class="btn">PLAY AUDIO</button>
 
+        <button class="configRoomBtn" onclick="window.location.href='add.html'">
+             UPLOAD YOUR ROOM
+        </button>
+
         <div style="margin-top: 15px;">
             <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; text-align: center;">
                 - Volume +
             </label>
-            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="0.5" style="width: 100%; accent-color: #ff4444;">
+            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="1" style="width: 100%; accent-color: #ff4444;">
         </div>
 
         <div id="audioList"></div>

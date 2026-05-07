@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicació web d'auralització</title>
+    <link rel="icon" href="Images/ICONO_.jpg">
+    <link rel="stylesheet" href="add.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Configuration of the room</h1>
+    <p class="subtitle">This tool allows for the extrapolation of the auralization method to any space by uploading custom 3D models and Impulse Responses (IRs).</p>
+
+    <div class="info-box">
+        <label style="color: var(--primary); margin-bottom: 5px;">Requisits del sistema:</label>
+        <ul>
+            <li>Model 3D in format <b>.GLB</b> (export from Blender)</li>
+            <li>IRs in <b>.WAV</b> (mono/estèreo)</li>
+            <li>Required Naming: <b>1F-1A.wav</b> through <b>6F-7A.wav</b>.</li>
+        </ul>
+    </div>
+
+    <div class="upload-section">
+        <label for="model">1. 3D Room Model</label>
+        <input type="file" id="model" accept=".glb">
+    </div>
+
+    <div class="upload-section">
+        <label for="irs">2. Impulse Response Bank (Select multiple .wav files)</label>
+        <input type="file" id="irs" accept=".wav" multiple>
+    </div>
+
+    <div id="status" class="status">Files ready for processing!</div>
+
+    <div class="btn-group">
+        <button class="btn-back" onclick="window.location.href='index.html'">BACK</button>
+        <button class="btn-primary" id="btnLoad">LOAD SPACE</button>
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>

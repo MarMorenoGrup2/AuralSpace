@@ -153,3 +153,19 @@ h1 {
 input[type="file"] {
   display: none;
 }
+
+.configRoomBtn {
+  background: #007bff; 
+  color: white; 
+  margin-top: 15px; 
+  border-radius: 8px; 
+  font-weight: bold; 
+  border: none; 
+  padding: 10px 20px; 
+  cursor: pointer;
+  transition: background 0.3s ease; /* Añade esto para que sea más elegante al pasar el ratón */
+}
+
+.configRoomBtn:hover {
+  background: #0056b3; /* Se oscurece un poco al pasar el ratón */
+}
