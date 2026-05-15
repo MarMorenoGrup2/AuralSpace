@@ -173,9 +173,9 @@ input[type="file"] {
  /*Barra horizontal superior negra */
 #top-bar {
   position: absolute;
-  top: 0;
-  left: 170%;
-  width: 500%;
+  top: 20px;
+  left: 280px;
+  right: 0;       
   height: 70px;
   background-color: #0c0c0c00;  
   display: flex;
@@ -190,7 +190,7 @@ input[type="file"] {
 /*Contenedor de botones de modo*/
 #mode-selector {
   display: flex;
-  gap: 80px;
+  gap: 20px;
   justify-content: center;
   align-items: center;
   
