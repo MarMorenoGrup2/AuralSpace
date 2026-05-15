@@ -4,28 +4,29 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 let camera, scene, renderer, controls, player, floorPlane, raycaster, pointer;
 let isDragging = false;
-let autoPlayStarted = false; // Control para el inicio automático
+let autoPlayStarted = false; 
 
-// --- MOTOR DE AUDIO ---
+//AUDIO
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let sourceNode = null;
 let userAudioBuffer = null;
 let isPlaying = false;
 let selectedAudioId = null;
 let audioLibrary = [];
+let currentMode = 'mono';
 
 let masterGain = null;
 let activeWetChain = null; 
 const irBuffers = {}; 
 const FADE_TIME = 0.2; 
 
-// --- CONFIGURACIÓN DE LA MALLA ---
+//MESH
 const GRID_SIZE = 0.6; 
 const OFFSET_X = -0.16;
 const OFFSET_Z = 2.05;
 let currentGridPos = { x: 2, z: 3 };
 
-// Cálculo del centro para la cámara
+// CAMERA CENTER
 const centroX = OFFSET_X + (2.5 * GRID_SIZE);
 const centroZ = OFFSET_Z - (3 * 0.65);
 
@@ -36,7 +37,7 @@ async function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0a0a);
     
-    // --- CÁMARA CENITAL AMPLIADA (Vista desde arriba) ---
+    // CAMERA ZOOM 
     camera = new THREE.PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(centroX, 10, centroZ); 
     
@@ -52,7 +53,7 @@ async function init() {
     controls.target.set(centroX, 1, centroZ); 
     controls.update();
 
-    // 1. JUGADOR (Esfera roja a h=1.22)
+    // PLAYER
     player = new THREE.Mesh(
         new THREE.SphereGeometry(0.12, 32, 32),
         new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0xff0000, emissiveIntensity: 0.5 })
@@ -60,7 +61,7 @@ async function init() {
     updatePlayerPosition();
     scene.add(player);
 
-    // 2. MALLA DE PUNTOS (Color Gris Técnico)
+    // MESH OF POINTS
     const dotGeo = new THREE.SphereGeometry(0.02, 8, 8);
     const dotMat = new THREE.MeshBasicMaterial({ color: 0x444444, transparent: true, opacity: 0.6 });
     for (let x = 0; x < 6; x++) {
@@ -71,7 +72,7 @@ async function init() {
         }
     }
 
-    // 3. CARGA DE LA SALA 3D
+    // 3D ROOM
     new GLTFLoader().load('./Sala3D.glb', (gltf) => {
         scene.add(gltf.scene);
         const floorGeo = new THREE.PlaneGeometry(20, 20);
@@ -83,15 +84,15 @@ async function init() {
     raycaster = new THREE.Raycaster();
     pointer = new THREE.Vector2();
 
-    // --- CARGA DE AUDIO Y DEMO ---
+    // AUDIO AND DEMO 
     await preloadAllIRs();
-    await loadDemoAudio(); // Carga Orgue.wav
+    await loadDemoAudio(); 
 
-    // Ajustamos slider al máximo por defecto
+    
     const slider = document.getElementById('mixSlider');
     if(slider) slider.value = 1;
 
-    // EVENTOS
+    // EVENTS
     window.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
@@ -105,9 +106,22 @@ async function init() {
             if (activeWetChain) activeWetChain.gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.05);
         });
     }
-}
 
-// --- FUNCIÓN PARA CARGAR LA DEMO Y ACTIVAR AUTO-PLAY ---
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentMode = e.target.id.replace('btn-', ''); 
+            console.log("Modo cambiado a:", currentMode);
+            
+            updateConvolver(); 
+    })})
+        
+    
+    
+};
+
+// CHARGE DEMO AND PUT THE AUDIO PLAYING 
 async function loadDemoAudio() {
     try {
         const response = await fetch('Audio/orgue.wav');
@@ -119,7 +133,7 @@ async function loadDemoAudio() {
         selectedAudioId = demoId;
         renderAudioList();
 
-        // Listener para sonar al primer clic del usuario
+       
         const startAudioOnInteraction = async () => {
             if (autoPlayStarted) return;
             autoPlayStarted = true;
@@ -145,7 +159,7 @@ async function preloadAllIRs() {
     for (let f = 1; f <= 6; f++) {
         for (let a = 1; a <= 7; a++) {
             const label = `${f}F-${a}A`;
-            const p = fetch(`IRs/${label}.wav`).then(r => r.arrayBuffer())
+            const p = fetch(`IRs/MONO/${label}.wav`).then(r => r.arrayBuffer())
                 .then(ab => audioCtx.decodeAudioData(ab))
                 .then(buf => {
                     irBuffers[label] = buf;
@@ -163,31 +177,103 @@ async function preloadAllIRs() {
     }
 }
 
-function updateConvolver() {
+
+function ensureStereo(buffer) {
+
+    if (!buffer) return null;
+    if (buffer.numberOfChannels >= 2) return buffer;
+        
+    const stereoBuffer = audioCtx.createBuffer(2, buffer.length, buffer.sampleRate);
+    const monoData = buffer.getChannelData(0);
+    
+    stereoBuffer.copyToChannel(monoData, 0); 
+    stereoBuffer.copyToChannel(monoData, 1);
+    return stereoBuffer;
+}
+
+
+async function createPseudoBRIR(monoBuffer, x, z) {
+   
+    const relX = x - 2.5; 
+    const relZ = z - 3;
+    let angle = Math.atan2(relX, relZ) * (180 / Math.PI);
+    if (angle < 0) angle += 360;
+
+    
+    const availableAngles = [0, 30, 60, 90, 120, 150, 180]; 
+    const closestAngle = availableAngles.reduce((prev, curr) => 
+        Math.abs(curr - (angle % 180)) < Math.abs(prev - (angle % 180)) ? curr : prev
+    );
+
+    try {
+        const hrtfRes = await fetch(`HRTF/${closestAngle}.wav`);
+        const hrtfAb = await hrtfRes.arrayBuffer();
+        const hrtfBuffer = await audioCtx.decodeAudioData(hrtfAb);
+
+        
+        const offlineCtx = new OfflineAudioContext(2, monoBuffer.length + hrtfBuffer.length, monoBuffer.sampleRate);
+        const source = offlineCtx.createBufferSource();
+        source.buffer = monoBuffer;
+
+        const convolver = offlineCtx.createConvolver();
+        convolver.buffer = hrtfBuffer;
+
+        source.connect(convolver);
+        convolver.connect(offlineCtx.destination);
+        source.start();
+
+        return await offlineCtx.startRendering();
+    } catch (e) {
+        console.warn("ERROR PSEUDO-BRIR", e);
+        return ensureStereo(monoBuffer);
+    }
+}
+
+async function updateConvolver() {
     if (!isPlaying || !sourceNode) return;
+    
     const label = `${currentGridPos.x + 1}F-${currentGridPos.z + 1}A`;
-    const nextBuffer = irBuffers[label];
-    if (!nextBuffer) return;
+    let rawBuffer = irBuffers[label];
+    if (!rawBuffer) return;
+
+    let finalBuffer;
+    let modeBoost = 1.0; 
+
+    if (currentMode === "pseudo") {
+        finalBuffer = await createPseudoBRIR(rawBuffer, currentGridPos.x, currentGridPos.z);
+        modeBoost = 6.5; 
+    } else {
+        finalBuffer = ensureStereo(rawBuffer);
+        modeBoost = 2.5; 
+    }
 
     const now = audioCtx.currentTime;
-    const mixValue = parseFloat(document.getElementById('mixSlider').value);
+    
+    
+    const userMix = parseFloat(document.getElementById('mixSlider').value);
+    const finalGainValue = userMix * modeBoost;
 
     const nextWetGain = audioCtx.createGain();
     const nextConv = audioCtx.createConvolver();
-    nextConv.buffer = nextBuffer;
+    
+    nextConv.buffer = finalBuffer;
     nextWetGain.gain.setValueAtTime(0, now);
 
     sourceNode.connect(nextConv);
     nextConv.connect(nextWetGain);
     nextWetGain.connect(masterGain);
 
-    nextWetGain.gain.linearRampToValueAtTime(mixValue, now + FADE_TIME);
+    
+    nextWetGain.gain.linearRampToValueAtTime(finalGainValue, now + FADE_TIME);
 
     if (activeWetChain) {
         const oldG = activeWetChain.gainNode;
         const oldC = activeWetChain.convNode;
         oldG.gain.linearRampToValueAtTime(0, now + FADE_TIME);
-        setTimeout(() => { oldC.disconnect(); oldG.disconnect(); }, FADE_TIME * 1000);
+        setTimeout(() => { 
+            oldC.disconnect(); 
+            oldG.disconnect(); 
+        }, FADE_TIME * 1000);
     }
     activeWetChain = { convNode: nextConv, gainNode: nextWetGain };
 }
@@ -222,7 +308,7 @@ function stopAudio() {
 
 function updatePlayerPosition() {
     player.position.x = OFFSET_X + currentGridPos.x * GRID_SIZE;
-    player.position.y = 1.22; // Altura fija según medida
+    player.position.y = 1.22; 
     player.position.z = OFFSET_Z - currentGridPos.z * 0.65;
 }
 

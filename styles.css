@@ -169,3 +169,60 @@ input[type="file"] {
 .configRoomBtn:hover {
   background: #0056b3; /* Se oscurece un poco al pasar el ratón */
 }
+
+ /*Barra horizontal superior negra */
+#top-bar {
+  position: absolute;
+  top: 0;
+  left: 170%;
+  width: 500%;
+  height: 70px;
+  background-color: #0c0c0c00;  
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 1000;
+  box-sizing: border-box;
+  border-bottom: 1px solid #33333300;
+}
+
+/*Contenedor de botones de modo*/
+#mode-selector {
+  display: flex;
+  gap: 80px;
+  justify-content: center;
+  align-items: center;
+  
+}
+
+/* Botones redonditos rojos con letras negras */
+.mode-btn {
+  width: 100px;
+  height: 35px;
+  border-radius: 8px; /* Los hace redondos */
+  background-color: #ff0000; /* Rojo vibrante */ 
+  color: #ffffff; /* Letras negras */
+  border: none;
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background-color 0.2s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.mode-btn:hover {
+  transform: scale(1.1);
+  background-color: #ff4444;
+}
+
+/* Estilo para el botón activo (puedes ponerle un borde o brillo) */
+.mode-btn.active {
+  outline: 3px solid white;
+  background-color: #ffffff;
+  color: #ff0000;
+}
