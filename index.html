@@ -25,13 +25,25 @@
 
         <button id="playButton" class="btn">PLAY AUDIO</button>
 
+        <button class="configRoomBtn" onclick="window.location.href='add.html'">
+             UPLOAD YOUR ROOM
+        </button>
+
         <div style="margin-top: 15px;">
             <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; text-align: center;">
-                REAL <-> CONVOLVED
+                - Volume +
             </label>
-            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="0.5" style="width: 100%; accent-color: #ff4444;">
+            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="1" style="width: 100%; accent-color: #ff4444;">
         </div>
-
+        <div id="top-bar">
+            <div id="mode-selector">
+                <button id="btn-mono" class="mode-btn active">MONO</button>
+                <button id="btn-stereo" class="mode-btn">STEREO</button>
+                <button id="btn-pseudo" class="mode-btn">PSEUDO-BRIR</button>
+                <button id="btn-ambi" class="mode-btn">AMBISONIC</button>
+            </div>
+        </div>
+        
         <div id="audioList"></div>
     </div>
 
