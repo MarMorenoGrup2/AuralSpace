@@ -1,19 +1,89 @@
-document.getElementById('btnLoad').onclick = function() {
+document.getElementById('btnLoad').onclick = function () {
+
     const model = document.getElementById('model').files[0];
     const irs = document.getElementById('irs').files;
 
-    if (!model || irs.length === 0) {
-        alert("Si us plau, selecciona el model 3D i els fitxers d'impuls (IRs).");
+    // =========================
+    // VALIDATION
+    // =========================
+
+    if (!model) {
+        alert("Upload a GLB model.");
         return;
     }
 
-    // Aquí se mostraría un feedback de carga
-    document.getElementById('status').style.display = 'block';
-    
-    // En un entorno real, aquí guardaríamos los datos o pasaríamos los blobs
-    // Por ahora, simulamos el proceso y volvemos a la principal
+    if (irs.length === 0) {
+        alert("Upload IR files.");
+        return;
+    }
+
+    // =========================
+    // CHECK MODEL FORMAT
+    // =========================
+
+    if (!model.name.toLowerCase().endsWith('.glb')) {
+        alert("The model must be .GLB");
+        return;
+    }
+
+    // =========================
+    // CHECK WAV FILES
+    // =========================
+
+    for (let file of irs) {
+
+        if (!file.name.toLowerCase().endsWith('.wav')) {
+
+            alert(`Invalid file: ${file.name}`);
+            return;
+        }
+    }
+
+    // =========================
+    // SHOW STATUS
+    // =========================
+
+    const status = document.getElementById('status');
+
+    status.style.display = 'block';
+
+    status.innerHTML = `
+        ✅ Model loaded: ${model.name}<br>
+        ✅ IR files loaded: ${irs.length}
+    `;
+
+    // =========================
+    // CREATE TEMP URLS
+    // =========================
+
+    const modelURL = URL.createObjectURL(model);
+
+    const irURLs = [];
+
+    for (let file of irs) {
+
+        irURLs.push({
+            name: file.name,
+            url: URL.createObjectURL(file)
+        });
+
+    }
+
+    // =========================
+    // SAVE DATA
+    // =========================
+
+    sessionStorage.setItem('modelURL', modelURL);
+    sessionStorage.setItem('irURLs', JSON.stringify(irURLs));
+
+    // =========================
+    // REDIRECT
+    // =========================
+
     setTimeout(() => {
-        alert("Configuració realitzada. Tornant al visor 3D...");
+
         window.location.href = 'index.html';
-    }, 1500);
+
+    }, 1000);
+
 };
