@@ -32,6 +32,7 @@ h1 {
   letter-spacing: 1px;
 }
 
+
 #loading-overlay {
   position: fixed;
   top: 0;
@@ -317,6 +318,11 @@ input[type="file"] {
 .modal-content h2 {
   margin-top: 0;
   color: #ff4444;
+}
+
+.modal-content h3 {
+  line-height: 1.5;
+  color: #ddd;
 }
 
 .modal-content p {

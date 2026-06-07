@@ -48,6 +48,9 @@ let currentGridPos = { x: 2, z: 2 };
 const centroX = OFFSET_X + (2 * GRID_SIZE);
 const centroZ = OFFSET_Z - (2 * GRID_SIZE);
 
+const gridDots = [];
+let pseudoCentralBRIR = null;
+
 init();
 animate();
 
@@ -154,6 +157,7 @@ async function init() {
             );
 
             scene.add(dot);
+            gridDots.push(dot);
         }
     }
 
@@ -190,6 +194,8 @@ async function init() {
 
     await preloadIR();
     await preloadHRTFs();
+    pseudoCentralBRIR =
+    await buildPseudoBRIR();
     await loadDemoAudio();
 
 
@@ -249,8 +255,17 @@ async function init() {
 
                     e.target.classList.add('active');
 
-                    currentMode =
-                        e.target.id.replace('btn-', '');
+                    currentMode = e.target.id.replace('btn-', '');
+                    setPseudoView(currentMode === 'pseudo');
+                    if (currentMode === 'pseudo') {
+
+                        currentGridPos = { x: 2, z: 2 };
+                
+                            updatePlayerPosition();
+                            if (isPlaying) {
+                                updateConvolver();
+                            }
+                        }
 
                     console.log(
                         "Modo:",
@@ -268,12 +283,20 @@ async function init() {
         });
 }
 
+function setPseudoView(enabled){
+
+    // grid
+    gridDots.forEach(dot => {
+        dot.visible = !enabled;
+    });
+}
+
 async function loadDemoAudio() {
 
     try {
 
         const response =
-            await fetch('Audio/orgue.wav');
+            await fetch('Audio/Demo-Praeludium in a minor BWV 543.wav');
 
         const arrayBuffer =
             await response.arrayBuffer();
@@ -457,7 +480,7 @@ async function preloadIR() {
 async function preloadHRTFs() {
 
     const angles =
-        [0, 30, 60, 90, 120, 150, 180];
+        [0, 30, 45, 60, 90, 120, 135, 150, 180];
 
     for (const angle of angles) {
 
@@ -494,13 +517,104 @@ async function preloadHRTFs() {
 // PSEUDO BRIR
 // =====================================================
 
+const pseudoNeighbours = [
+
+    {x:1,z:1,angle:-45},
+    {x:2,z:1,angle:0},
+    {x:3,z:1,angle:45},
+
+    {x:1,z:2,angle:-90},
+    {x:3,z:2,angle:90},
+
+    {x:1,z:3,angle:-135},
+    {x:2,z:3,angle:180},
+    {x:3,z:3,angle:135}
+];
+
+async function buildPseudoBRIR()
+{
+    const sampleRate = audioCtx.sampleRate;
+
+    const renderedBuffers = [];
+
+    for(const n of pseudoNeighbours)
+    {
+        const label =
+            `${n.x + 1}F-${n.z + 1}A`;
+
+        const roomIR =
+            irBuffersMono[label];
+
+        if(!roomIR) continue;
+
+        // const angle =
+        //     Math.abs(n.angle);
+        const angle = n.angle;
+        const brir =
+            await generatePseudoBRIR(
+                roomIR,
+                angle
+            );
+
+        renderedBuffers.push(brir);
+    }
+
+    return sumBuffers(renderedBuffers);
+}
+
+function sumBuffers(buffers)
+{
+    if(buffers.length === 0) return null;
+
+    const length =
+        Math.max(...buffers.map(b => b.length));
+
+    const out =
+        audioCtx.createBuffer(
+            2,
+            length,
+            audioCtx.sampleRate
+        );
+
+    const L =
+        out.getChannelData(0);
+
+    const R =
+        out.getChannelData(1);
+
+    buffers.forEach(buffer => {
+
+        const bL =
+            buffer.getChannelData(0);
+
+        const bR =
+            buffer.getChannelData(1);
+
+        for(let i=0;i<buffer.length;i++)
+        {
+            L[i] += bL[i];
+            R[i] += bR[i];
+        }
+    });
+
+    const gain =
+        1 / buffers.length;
+
+    for(let i=0;i<length;i++)
+    {
+        L[i] *= gain;
+        R[i] *= gain;
+    }
+
+    return out;
+}
 async function generatePseudoBRIR(
     roomIR,
     angle
 ) {
 
     const availableAngles =
-        [0, 30, 60, 90, 120, 150, 180];
+        [0, 30, 45, 60, 90, 120, 135, 150, 180];
 
     const closestAngle =
         availableAngles.reduce((prev, curr) =>
@@ -624,45 +738,79 @@ async function updateConvolver() {
 
     else if (currentMode === 'pseudo') {
 
-        const monoIR =
-            irBuffersMono[label];
+        const monoIR = irBuffersMono[label];
+    if (!monoIR) return;
 
-        if (!monoIR) return;
+    // 🔥 1. calcular azimut real desde el centro
+    const relX = currentGridPos.x - 2;
+    const relZ = 2 - currentGridPos.z;
 
-        const relX =
-            currentGridPos.x - 2;
+    let angle = Math.atan2(relX, relZ) * 180 / Math.PI;
 
-        const relZ =
-            2 - currentGridPos.z;
+    // normalizar 0–360
+    if (angle < 0) angle += 360;
 
-        const angle =
-            Math.abs(
-                Math.atan2(relX, relZ)
-                * 180 / Math.PI
-            );
+    // 🔥 2. cuantizar a tus HRTFs disponibles
+    const availableAngles = [0, 30, 45, 60, 90, 120, 135, 150, 180];
 
-        const roundedAngle =
-            Math.round(angle / 30) * 30;
+    const closestAngle = availableAngles.reduce((prev, curr) =>
+        Math.abs(curr - angle) < Math.abs(prev - angle)
+            ? curr
+            : prev
+    );
 
-        const cacheKey =
-            `${label}_${roundedAngle}`;
+    // 🔥 3. cache (IMPORTANTE rendimiento)
+    const cacheKey = `${label}_${closestAngle}`;
 
-        if (!pseudoBRIRCache[cacheKey]) {
+    if (!pseudoBRIRCache[cacheKey]) {
 
-            console.log(
-                "Generando pseudo:",
-                cacheKey
-            );
+        pseudoBRIRCache[cacheKey] =
+            await generatePseudoBRIR(monoIR, closestAngle);
+    }
 
-            pseudoBRIRCache[cacheKey] =
-                await generatePseudoBRIR(
-                    monoIR,
-                    roundedAngle
-                );
-        }
+    rawBuffer = pseudoBRIRCache[cacheKey];
 
-        rawBuffer =
-            pseudoBRIRCache[cacheKey];
+        // const monoIR =
+        //     irBuffersMono[label];
+
+        // if (!monoIR) return;
+
+        // const relX =
+        //     currentGridPos.x - 2;
+
+        // const relZ =
+        //     2 - currentGridPos.z;
+
+        // const angle =
+        //     Math.abs(
+        //         Math.atan2(relX, relZ)
+        //         * 180 / Math.PI
+        //     );
+
+        // const roundedAngle =
+        //     Math.round(angle / 30) * 30;
+
+        // const cacheKey =
+        //     `${label}_${roundedAngle}`;
+
+        // if (!pseudoBRIRCache[cacheKey]) {
+
+        //     console.log(
+        //         "Generando pseudo:",
+        //         cacheKey
+        //     );
+
+        //     pseudoBRIRCache[cacheKey] =
+        //         await generatePseudoBRIR(
+        //             monoIR,
+        //             roundedAngle
+        //         );
+        // }
+
+        // rawBuffer =
+        //     pseudoBRIRCache[cacheKey];
+
+        // rawBuffer = pseudoCentralBRIR;
     }
 
     if (!rawBuffer) {
@@ -1016,6 +1164,10 @@ function onDown(e) {
 }
 
 function onMove(e) {
+
+    if(currentMode === 'pseudo'){
+        return;
+    }
 
     updatePointer(e);
 

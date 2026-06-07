@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Aplicació web d'auralització</title>
+    <title>AuralSpace</title>
     <link rel="icon" href="Images/favicon.png">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,7 +20,7 @@
         <h1>AuralSpace</h1>
 
         <label class="upload-area">
-            UPLOAD AUDIO
+            UPLOAD AUDIO <br><i>.wav</i> (MONO/STEREO)
             <input type="file" id="audioInput" accept="audio/*">
         </label>
 
@@ -40,8 +40,8 @@
             <div id="mode-selector">
                 <button id="btn-mono" class="mode-btn active">MONO</button>
                 <button id="btn-stereo" class="mode-btn">STEREO</button>
-                <button id="btn-pseudo" class="mode-btn">PSEUDO-BRIR</button>
                 <button id="btn-binaural" class="mode-btn">BINAURAL</button>
+                <button id="btn-pseudo" class="mode-btn">PSEUDO-BRIR</button>
             </div>
         </div>
         
@@ -49,14 +49,15 @@
     </div>
     <div id="welcomeModal" class="modal">
         <div class="modal-content">
-            <h2>Welcome to AuralSpace</h2>
-            <p>
-                Use the mouse to rotate, move and explore the 3D room model.
+            <h2>WELCOME TO AURALSPACE</h2>
+            <h3>This is a web based on auralization in a 3D rooms.</h3>
+
+            <p>To rotate, move and explore the 3D room model use the mouse.
             </p>
             <p>
-                The interactive sphere can also be controlled using the mouse.
+                To control the interactive sphere, right-click on the sphere and use the mouse to move it across the grid.
             </p>
-            <button id="closeModal">Understood</button>
+            <button id="closeModal">Ok</button>
         </div>
     </div>
 

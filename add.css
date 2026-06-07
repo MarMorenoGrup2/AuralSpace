@@ -43,8 +43,30 @@ p.subtitle {
     line-height: 1.4;
 }
 
-.upload-section {
-    margin-bottom: 25px;
+.description-box {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left: 4px solid var(--primary);
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 0 5px 5px 0;
+    line-height: 1.5;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.info-box {
+    background: rgba(255, 68, 68, 0.05);
+    border-left: 3px solid var(--primary);
+    padding: 15px;
+    margin-bottom: 30px;
+    border-radius: 4px;
+}
+
+.info-box ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 0.85rem;
+    color: #aaa;
 }
 
 label {
@@ -56,37 +78,65 @@ label {
     text-transform: uppercase;
 }
 
-input[type="file"] {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    background: #222;
-    border: 1px dashed #444;
+/* --- Sección de Carga de Archivos --- */
+
+.upload-section {
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column; /* Coloca el estado DEBAJO del botón */
+}
+
+.custom-file-upload {
+    display: flex;
+    margin-top: 10px;
+    margin-bottom: 8px;
+}
+
+.btn-upload {
+    background-color: #2c2c2c;
+    color: white;
+    border: 2px solid var(--primary);
+    padding: 12px 20px;
     border-radius: 8px;
-    color: #ccc;
     cursor: pointer;
-    box-sizing: border-box;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
 }
 
-input[type="file"]:hover {
-    border-color: var(--primary);
-    background: #282828;
+.btn-upload:hover {
+    background-color: var(--primary);
+    color: black;
 }
 
-.info-box {
-    background: rgba(0, 229, 255, 0.05);
-    border-left: 3px solid var(--primary);
-    padding: 15px;
-    margin-bottom: 30px;
-    border-radius: 4px;
+/* Contenedor del estatus del archivo */
+.file-status-container {
+    display: flex;
+    align-items: center;
+    min-height: 24px; /* Evita saltos bruscos de layout al aparecer */
 }
 
-.info-box ul {
-    margin: 0;
-    padding-left: 20px;
-    font-size: 0.8rem;
-    color: #aaa;
+/* Nombre del archivo: Pequeño e itálico en Turquesa */
+.file-name {
+    color: #00e5ff !important; /* Forzamos el Turquesa */
+    font-size: 0.85rem !important; /* Pequeño */
+    font-style: italic;
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
+
+/* Tick (✓) automático cuando el span NO está vacío */
+.file-name:not(:empty)::before {
+    content: "✓";
+    color: #00e5ff;
+    font-weight: bold;
+    font-style: normal;
+    font-size: 1.1rem;
+}
+
+/* --- Botones de Navegación Inferiores --- */
 
 .btn-group {
     display: flex;
@@ -95,7 +145,6 @@ input[type="file"]:hover {
 }
 
 button {
-    flex: 1;
     padding: 15px;
     border-radius: 10px;
     font-weight: bold;
@@ -109,6 +158,7 @@ button {
     background: transparent;
     color: var(--text-dim);
     border: 1px solid var(--border);
+    flex: 1;
 }
 
 .btn-back:hover {
@@ -120,55 +170,18 @@ button {
 .btn-primary {
     background: var(--primary);
     color: #000;
+    flex: 1;
 }
 
 .btn-primary:hover {
-    background: #ff4444;
+    background: #ff6666;
     transform: translateY(-2px);
-    
 }
 
 .status {
     margin-top: 15px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     text-align: center;
     color: var(--success);
     display: none;
-}
-
-
-
-input[type="file"] {
-    background: #222;
-    border: 1px dashed #444;
-    border-radius: 8px;
-    color: #888; 
-    padding: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-
-input[type="file"]::file-selector-button {
-    background: #444; 
-    color: white;    
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    margin-right: 15px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background 0.3s ease;
-}
-
-
-input[type="file"]::file-selector-button:hover {
-    background: #00e5ff;
-    color: #000;         
-}
-
-
-input[type="file"]:hover {
-    border-color: #00e5ff;
-    background: #282828;
 }
