@@ -13,7 +13,7 @@ document.getElementById('btnLoad').onclick = function () {
 
     const status = document.getElementById('status');
     status.style.display = 'block';
-    status.innerHTML = `✅ Model loaded: ${model.name}<br>`;
+    status.innerHTML = `Model loaded: ${model.name}<br>`;
 
     const modelURL = URL.createObjectURL(model);
     sessionStorage.setItem('modelURL', modelURL);
@@ -28,7 +28,6 @@ function updateFileName() {
     const fileNameSpan = document.getElementById('file-name');
     
     if (input.files.length > 0) {
-        // Añade el prefijo de forma limpia antes del nombre del archivo
         fileNameSpan.textContent = `Added file: ${input.files[0].name}`;
     } else {
         fileNameSpan.textContent = "";

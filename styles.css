@@ -7,6 +7,7 @@ body {
   font-family: 'Segoe UI', sans-serif;
 }
 
+/*MAIN PANEL FIXED SIDEBAR*/
 #ui-container {
   position: fixed; 
   top: 0;
@@ -118,6 +119,26 @@ input[type="file"] {
   background: #0056b3;
 }
 
+/*Volume control*/
+.volume-control {
+  margin-top: 15px;
+}
+
+.volume-control label {
+  font-size: 11px;
+  color: #aaa;
+  display: block;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+/*Volume control slider*/
+#mixSlider {
+  width: 100%;
+  accent-color: #ff4444;
+}
+
+/*Audio list*/
 #audioList {
   flex: 1;
   overflow-y: auto;
@@ -166,7 +187,7 @@ input[type="file"] {
   color: #ff4444;
 }
 
-
+/*TOP BAR*/
 #top-bar {
   position: fixed;
   top: 20px;
@@ -257,7 +278,6 @@ input[type="file"] {
     font-size: 11px;
   }
 }
-
 
 @media (max-width: 700px) {
   #ui-container {

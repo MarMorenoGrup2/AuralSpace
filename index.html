@@ -14,7 +14,6 @@
         <h2>PREPARING ACUSTICS...</h2>
         <div id="load-progress">0%</div>
     </div>
-
     
     <div id="ui-container">
         <h1>AuralSpace</h1>
@@ -30,11 +29,9 @@
              UPLOAD YOUR ROOM
         </button>
 
-        <div style="margin-top: 15px;">
-            <label style="font-size: 11px; color: #aaa; display: block; margin-bottom: 5px; text-align: center;">
-                - Volume +
-            </label>
-            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="1" style="width: 100%; accent-color: #ff4444;">
+        <div class="volume-control">
+            <label>- Volume +</label>
+            <input type="range" id="mixSlider" min="0" max="1" step="0.01" value="1">
         </div>
         <div id="top-bar">
             <div id="mode-selector">
@@ -50,13 +47,14 @@
     <div id="welcomeModal" class="modal">
         <div class="modal-content">
             <h2>WELCOME TO AURALSPACE</h2>
-            <h3>This is a web based on auralization in a 3D rooms.</h3>
+            <h3>This is a web based on auralization in a 3D room</h3>
 
             <p>To rotate, move and explore the 3D room model use the mouse.
             </p>
             <p>
-                To control the interactive sphere, right-click on the sphere and use the mouse to move it across the grid.
+                To control the interactive sphere, left-click on the sphere and use the mouse to move it across the grid.
             </p>
+            <p><b>NOTICE: </b>To ensure correct acoustic simulation, be sure to use headphones 🎧</p>
             <button id="closeModal">Ok</button>
         </div>
     </div>
