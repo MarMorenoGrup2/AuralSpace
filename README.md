@@ -8,7 +8,7 @@ You can access the web application here: https://marmorenogrup2.github.io/AuralS
 
 AuralSpace is a web-based application that simulates sound perception within an acoustic environment according to the listener's position. Using measured impulse responses (IRs) acquired at different locations, the application reproduces how sound changes throughout the space and allows users to experience the acoustic scene through mono, stereo, or binaural rendering.
 
-The application consists of a demo based on the Montserrat Torrent Organ Hall at the ESMUC (Escola Superior de Música de Catalunya), which was named in her honor on the occasion of her 100th anniversary. It uses a stereo recording of Johann Sebastian Bach’s "Prelude and Fugue in A minor, BWV 543" to showcase the acoustic response of the hall through mono, stereo, binaural and pseudo-BRIR rendering.
+The application consists of a demo based on the Montserrat Torrent Organ Hall at the ESMUC (Escola Superior de Música de Catalunya), which was named in her honor on the occasion of her 100th anniversary. It uses a stereo recording of Johann Sebastian Bach’s "Prelude and Fugue in A minor BWV 543" to showcase the acoustic response of the hall through mono, stereo, binaural and pseudo-BRIR rendering.
 
 ## Features
 
