@@ -3,33 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplicació web d'auralització</title>
-    <link rel="icon" href="Images/ICONO_.jpg">
+    <title>AuralSpace</title>
+    <link rel="icon" href="Images/favicon.png">
     <link rel="stylesheet" href="add.css">
 </head>
 <body>
 
 <div class="container">
     <h1>Configuration of the room</h1>
-    <p class="subtitle">This tool allows for the extrapolation of the auralization method to any space by uploading custom 3D models and Impulse Responses (IRs).</p>
+    <p class="subtitle">This tool allows for the extrapolation of the auralization method to any space by uploading custom 3D models and Impulse Responses.</p>
+
 
     <div class="info-box">
-        <label style="color: var(--primary); margin-bottom: 5px;">Requisits del sistema:</label>
+        <label style="color: var(--primary); margin-bottom: 5px;">Requirements of system:</label>
         <ul>
-            <li>Model 3D in format <b>.GLB</b> (export from Blender)</li>
-            <li>IRs in <b>.WAV</b> (mono/estèreo)</li>
-            <li>Required Naming: <b>1F-1A.wav</b> through <b>6F-7A.wav</b>.</li>
+            <li>Model 3D in format <b>.GLB</b></li>
+            <li>IRs in <b>.WAV</b> (mono/estéreo)</li>
+            <li><b>Required Naming:</b> IRs must include the audio mode in their name (<b>MONO</b>, <b>STEREO</b>, or <b>BINAURAL</b>) and be ordered by rows (F) and seats (A) from 1 to 5. 
+                <br><i>Example: <b>MONO-1F-1A.wav</b>.</i></li>
         </ul>
     </div>
 
     <div class="upload-section">
-        <label for="model">1. 3D Room Model</label>
-        <input type="file" id="model" accept=".glb">
-    </div>
+        <label>3D ROOM MODEL</label>
+        
+        <div class="custom-file-upload">
+            <input type="file" id="model" accept=".glb" style="display: none;" onchange="updateFileName()">
+            <button type="button" class="btn-upload" onclick="document.getElementById('model').click()">ADD .GLB FILE</button>
+        </div>
 
-    <div class="upload-section">
-        <label for="irs">2. Impulse Response Bank (Select multiple .wav files)</label>
-        <input type="file" id="irs" accept=".wav" multiple>
+        <div id="file-status-container" class="file-status-container">
+            <span id="file-name" class="file-name"></span>
+        </div>
     </div>
 
     <div id="status" class="status">Files ready for processing!</div>
@@ -40,7 +45,7 @@
     </div>
 </div>
 
-<script src="script.js"></script>
+<script src="add.js"></script>
 
 </body>
 </html>

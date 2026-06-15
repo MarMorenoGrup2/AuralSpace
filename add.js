@@ -1,19 +1,35 @@
-document.getElementById('btnLoad').onclick = function() {
+document.getElementById('btnLoad').onclick = function () {
     const model = document.getElementById('model').files[0];
-    const irs = document.getElementById('irs').files;
 
-    if (!model || irs.length === 0) {
-        alert("Si us plau, selecciona el model 3D i els fitxers d'impuls (IRs).");
+    if (!model) {
+        alert("Upload a GLB model.");
         return;
     }
 
-    // Aquí se mostraría un feedback de carga
-    document.getElementById('status').style.display = 'block';
-    
-    // En un entorno real, aquí guardaríamos los datos o pasaríamos los blobs
-    // Por ahora, simulamos el proceso y volvemos a la principal
+    if (!model.name.toLowerCase().endsWith('.glb')) {
+        alert("The model must be .GLB");
+        return;
+    }
+
+    const status = document.getElementById('status');
+    status.style.display = 'block';
+    status.innerHTML = `Model loaded: ${model.name}<br>`;
+
+    const modelURL = URL.createObjectURL(model);
+    sessionStorage.setItem('modelURL', modelURL);
+
     setTimeout(() => {
-        alert("Configuració realitzada. Tornant al visor 3D...");
         window.location.href = 'index.html';
-    }, 1500);
+    }, 1000);
 };
+
+function updateFileName() {
+    const input = document.getElementById('model');
+    const fileNameSpan = document.getElementById('file-name');
+    
+    if (input.files.length > 0) {
+        fileNameSpan.textContent = `Added file: ${input.files[0].name}`;
+    } else {
+        fileNameSpan.textContent = "";
+    }
+}
