@@ -1,30 +1,43 @@
 # AuralSpace
 
-This web is about AuralSpace, a web app for room auralization
+This project is a web application for room auralization.
 
 You can access the web application here: https://marmorenogrup2.github.io/AuralSpace/
 
 ## Description
 
-AuralSpace is a web-based application that simulates sound perception within an acoustic space depending on the listener’s position.
-The web use measured impulse responses (IRs) at different positions, the system reproduces how sound changes throughout the space.
+AuralSpace is a web-based application that simulates sound perception within an acoustic environment according to the listener's position. Using measured impulse responses (IRs) acquired at different locations, the application reproduces how sound changes throughout the space and allows users to experience the acoustic scene through mono, stereo, or binaural rendering.
 
 ## Features
 
 - Navigate a 3D model of the room  
 - Move the red point to change the listener’s position  
 - Listen to how the sound changes depending on location  
-- Optionally load external audio to test different signals  
+- Optionally load external `.wav` audio files (mono or stereo)  
 
-## Current status
+## Current Status
 
-The project is currently under development. Ongoing work includes:
-- Improving audio playback performance  
-- Implementing pseudo-BRIR for binaural approximation  
-- Comparing results with stereo and ambisonic recordings  
+- Position-dependent auralization using measured impulse responses
+- Audio reproduction in mono, stereo, and binaural modes
+- Pseudo-BRIR rendering for a single listener position
+- Interactive navigation of the acoustic environment
+- Loading custom mono and stereo `.wav` audio files
 
+## Additional Work
 
+The project includes a deconvolution script located in the `Deconvolver` folder (`deconvolver.py`), which processes the recorded sweep measurements and generates impulse responses (IRs).
 
+The repository also provides an `IRs` dataset containing the room impulse responses in mono, stereo, and binaural formats.
 
-This project is part of a Bachelor’s Thesis (TFG) and aims to explore the potential of interactive web technologies for auralization and acoustic space simulation.
+## Future Work
 
+Potential extensions of the project include:
+
+- Extending pseudo-BRIR rendering to multiple listener positions
+- Increasing the number of measurement positions within the room
+- Allowing users to upload and auralize their own room models
+- Further optimization of real-time audio processing
+
+---
+
+This project is part of a Bachelor's Thesis (TFG) and aims to explore the potential of interactive web technologies for auralization and acoustic space simulation.
